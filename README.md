@@ -16,7 +16,6 @@
 
 ## 📑 Table of Contents
 
-- [📸 Demo & Screenshots](#-demo--screenshots)
 - [📖 About The Project](#-about-the-project)
 - [✨ Features](#-features)
 - [🏗️ Architecture & Workflow](#️-architecture--workflow)
