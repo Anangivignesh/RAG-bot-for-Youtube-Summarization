@@ -215,17 +215,6 @@ git push origin feature/AmazingFeature
 # 5. Open a Pull Request
 ```
 
----
-
-## 📄 License
-
-<p align="center">
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
-</p>
-
-Distributed under the MIT License. Feel free to use, modify, and distribute as you see fit.
-
----
 
 ## ✍️ Author & Acknowledgements
 
