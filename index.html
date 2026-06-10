@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YouTube Q&A</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; color: #f1f5f9; }
+  p.sub { font-size: 13px; color: #64748b; margin-bottom: 28px; }
+  .card { background: #1a1f2e; border: 1px solid #1e2535; border-radius: 12px; padding: 20px 24px; width: 100%; max-width: 680px; margin-bottom: 16px; }
+  label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  input[type="text"] { width: 100%; padding: 10px 14px; background: #0f1117; border: 1px solid #2d3748; border-radius: 8px; color: #e2e8f0; font-size: 14px; outline: none; }
+  input[type="text"]:focus { border-color: #6366f1; }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+  .btn-primary { background: #6366f1; color: #fff; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-ghost { background: #1e2535; color: #94a3b8; margin-left: 8px; }
+  .btn-ghost:hover { background: #2d3748; }
+  .row { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .status-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .pill-idle    { background: #1e2535; color: #64748b; }
+  .pill-loading { background: #1e3a5f; color: #60a5fa; }
+  .pill-ready   { background: #14532d; color: #4ade80; }
+  .pill-error   { background: #450a0a; color: #f87171; }
+  .meta { font-size: 12px; color: #64748b; margin-top: 8px; }
+  .messages { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; max-height: 400px; overflow-y: auto; }
+  .msg { padding: 12px 14px; border-radius: 8px; font-size: 14px; line-height: 1.6; }
+  .msg-user { background: #1e2a4a; color: #bfdbfe; align-self: flex-end; max-width: 85%; }
+  .msg-ai   { background: #0f1117; border: 1px solid #1e2535; color: #cbd5e1; max-width: 95%; }
+  .msg-err  { background: #1a0a0a; border: 1px solid #450a0a; color: #f87171; }
+  .empty-state { text-align: center; color: #334155; font-size: 13px; padding: 20px 0; }
+  .thumb { width: 100%; border-radius: 8px; margin-top: 10px; display: none; }
+</style>
+</head>
+<body>
+
+<h1>🎬 YouTube Q&amp;A</h1>
+<p class="sub">Paste a YouTube URL — then ask anything about the video</p>
+
+<div class="card">
+  <label>YouTube URL</label>
+  <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." />
+  <img id="thumb" class="thumb" alt="video thumbnail" />
+  <div class="row">
+    <button class="btn btn-primary" id="loadBtn" onclick="loadVideo()">Load Video</button>
+    <button class="btn btn-ghost" onclick="resetVideo()">Reset</button>
+    <span class="status-pill pill-idle" id="statusPill">No video loaded</span>
+  </div>
+  <p class="meta" id="metaText"></p>
+</div>
+
+<div class="card">
+  <label>Ask a question</label>
+  <div id="messages" class="messages">
+    <div class="empty-state">Load a video above to start asking questions</div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <input type="text" id="questionInput" placeholder="e.g. What are the main points discussed?" onkeydown="if(event.key==='Enter') sendQuestion()" />
+    <button class="btn btn-primary" id="askBtn" onclick="sendQuestion()" disabled>Ask</button>
+  </div>
+</div>
+
+<script>
+  let videoLoaded = false;
+
+  function setPill(text, cls) {
+    const p = document.getElementById('statusPill');
+    p.textContent = text;
+    p.className = 'status-pill ' + cls;
+  }
+
+  async function loadVideo() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) return;
+    const btn = document.getElementById('loadBtn');
+    btn.disabled = true;
+    setPill('Loading transcript...', 'pill-loading');
+    document.getElementById('metaText').textContent = '';
+    document.getElementById('thumb').style.display = 'none';
+
+    try {
+      const res = await fetch('/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (data.error) {
+        setPill('Error', 'pill-error');
+        document.getElementById('metaText').textContent = data.error;
+        videoLoaded = false;
+      } else {
+        setPill('Ready', 'pill-ready');
+        document.getElementById('metaText').textContent =
+          `${data.total_words.toLocaleString()} words · ${data.chunks_stored} chunks indexed`;
+        const thumb = document.getElementById('thumb');
+        thumb.src = `https://img.youtube.com/vi/${data.video_id}/mqdefault.jpg`;
+        thumb.style.display = 'block';
+        videoLoaded = true;
+        document.getElementById('askBtn').disabled = false;
+        document.getElementById('messages').innerHTML = '<div class="empty-state">Video loaded — ask your first question</div>';
+      }
+    } catch(e) {
+      setPill('Error', 'pill-error');
+      document.getElementById('metaText').textContent = 'Could not connect to backend. Is the server running?';
+    }
+    btn.disabled = false;
+  }
+
+  async function sendQuestion() {
+    if (!videoLoaded) return;
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    if (!question) return;
+
+    const messages = document.getElementById('messages');
+    const empties = messages.querySelectorAll('.empty-state');
+    empties.forEach(e => e.remove());
+
+    messages.innerHTML += `<div class="msg msg-user">${question}</div>`;
+    input.value = '';
+
+    const thinking = document.createElement('div');
+    thinking.className = 'msg msg-ai';
+    thinking.id = 'thinking';
+    thinking.textContent = 'Thinking...';
+    messages.appendChild(thinking);
+    messages.scrollTop = messages.scrollHeight;
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+      const data = await res.json();
+      document.getElementById('thinking').remove();
+      if (data.error) {
+        messages.innerHTML += `<div class="msg msg-err">${data.error}</div>`;
+      } else {
+        messages.innerHTML += `<div class="msg msg-ai">${data.answer}</div>`;
+      }
+    } catch(e) {
+      document.getElementById('thinking').remove();
+      messages.innerHTML += `<div class="msg msg-err">Could not reach backend.</div>`;
+    }
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  async function resetVideo() {
+    await fetch('/reset', { method: 'DELETE' });
+    videoLoaded = false;
+    document.getElementById('urlInput').value = '';
+    document.getElementById('thumb').style.display = 'none';
+    document.getElementById('metaText').textContent = '';
+    document.getElementById('askBtn').disabled = true;
+    document.getElementById('messages').innerHTML = '<div class="empty-state">Load a video above to start asking questions</div>';
+    setPill('No video loaded', 'pill-idle');
+  }
+</script>
+</body>
+</html>
