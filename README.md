@@ -10,7 +10,6 @@
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
   <img src="https://img.shields.io/badge/Status-MVP-orange?style=for-the-badge" alt="Status" />
   <img src="https://img.shields.io/badge/Platform-Web-lightgrey?style=for-the-badge" alt="Platform" />
-  <img src="https://img.shields.io/badge/Made_with-❤️-ff69b4?style=for-the-badge" alt="Made with Love" />
 </p>
 
 <br/>
