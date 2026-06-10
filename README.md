@@ -13,13 +13,6 @@
 
 <br/>
 
----
-
-## 📸 Demo & Screenshots
-
-> 📸 Screenshot coming soon — run locally to see the app in action
-
----
 
 ## 📑 Table of Contents
 
